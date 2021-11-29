@@ -1,11 +1,13 @@
 package tictactoe;
 
+import java.util.Random;
 import java.util.Scanner;
 
 public class Main {
 
     private char[][] charState;
     private Scanner scanner;
+    private Random random;
 
     public static void main(String[] args) {
         new Main().game();
@@ -14,43 +16,44 @@ public class Main {
     public Main() {
         charState = new char[3][3];
         scanner = new Scanner(System.in);
+        random = new Random();
     }
 
     public void game() {
         initTable();
-        printTable(charState);
-        turn();
-        printTable(charState);
-        if (checkWin('X')) {
-            System.out.println("X wins");
-            return;
-        }
-        if (checkWin('O')) {
-            System.out.println("O wins");
-            return;
-        }
-        if (isTableFull()) {
-            System.out.println("Draw");
-            return;
-        }
-        System.out.println("Game not finished");
-    }
-
-    private void initTable() {
-        int pos = 0;
-        System.out.print("Enter the cells: ");
-        String stringState = scanner.nextLine();
-        char[] charState1D = stringState.toCharArray();
-
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                charState[i][j] = charState1D[pos];
-                pos++;
+        while (true) {
+            printTable(charState);
+            turnHuman();
+            printTable(charState);
+            if (checkWin('X')) {
+                System.out.println("X wins");
+                return;
+            }
+            if (isTableFull()) {
+                System.out.println("Draw");
+                return;
+            }
+            turnAI();
+            if (checkWin('O')) {
+                System.out.println("O wins");
+                return;
+            }
+            if (isTableFull()) {
+                System.out.println("Draw");
+                return;
             }
         }
     }
 
-    private void turn() {
+    private void initTable() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                charState[i][j] = '_';
+            }
+        }
+    }
+
+    private void turnHuman() {
         int x = 4, y = 4;
         do {
             System.out.print("Enter the coordinates: ");
@@ -67,8 +70,19 @@ public class Main {
                 scanner = new Scanner(System.in);
             }
         } while (!isCellValid(x, y));
-        charState[x][y] = defineSign(charState);
+        charState[x][y] = 'X';
     }
+
+    private void turnAI() {
+        int x = 4, y = 4;
+        System.out.println("Making move level \"easy\"");
+        do {
+            x = random.nextInt(3);
+            y = random.nextInt(3);
+        } while (!isCellValidAI(x, y));
+        charState[x][y] = 'O';
+    }
+
 
     private boolean isCellValid(int x, int y) {
         if (x < 0 || y < 0 || x > 2 || y > 2) {
@@ -81,7 +95,14 @@ public class Main {
         return charState[x][y] == '_';
     }
 
-    private boolean checkWin(char dot) {
+    private boolean isCellValidAI(int x, int y) {
+        if (charState[x][y] == 'X' || charState[x][y] == 'O') {
+            return false;
+        }
+        return charState[x][y] == '_';
+    }
+
+    private boolean checkWin(char dot) {        //даже не вникайте
         for (int i = 0; i < 3; i++)
             if ((charState[i][0] == dot && charState[i][1] == dot &&
                     charState[i][2] == dot) ||
@@ -96,7 +117,7 @@ public class Main {
         return false;
     }
 
-    private boolean isTableFull() {
+    private boolean isTableFull() {             //тоже не вникайте
         for (int row = 0; row < 3; row++)
             for (int col = 0; col < 3; col++)
                 if (charState[row][col] == '_')
@@ -126,24 +147,5 @@ public class Main {
             }
             System.out.println("|");
         }
-    }
-
-    private static char defineSign(char[][] charState) {
-        int x = 0;
-        int y = 0;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (charState[i][j] == 'X') {
-                    x++;
-                }
-                if (charState[i][j] == 'O') {
-                    y++;
-                }
-            }
-        }
-        if (y == x) {
-            return 'X';
-        }
-        return 'O';
     }
 }
