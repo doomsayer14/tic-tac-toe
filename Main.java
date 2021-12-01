@@ -37,7 +37,7 @@ public class Main {
 
     //the main method
     public void game() {
-        while (command.equals("exit")) {
+        while (command != "exit") {
             initTable();
             askCommand();
             printTable(charState);
