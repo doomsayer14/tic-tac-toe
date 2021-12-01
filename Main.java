@@ -5,13 +5,13 @@ import java.util.Scanner;
 
 //An instance of this class is used to call only
 //one method - game(), all logic described in this method.
-
 public class Main {
 
     //contain our game field
     private char[][] charState;
 
     private Scanner scanner;
+
     // for easyAI
     private Random random;
 
@@ -30,31 +30,44 @@ public class Main {
     //Constructor
     public Main() {
         charState = new char[3][3];
+
         scanner = new Scanner(System.in);
         random = new Random();
+
         isGameValid = true;
+
+        command = "";
     }
 
     //the main method
     public void game() {
-        while (command != "exit") {
+        while (!command.equals("exit")) {
             initTable();
             askCommand();
+
+            //костыль...
+            if (command.equals("exit")) {
+                return;
+            }
+
             printTable(charState);
+
+            //decides, whose turn now: true means firstPlayer,
+            //false means secondPlayer
+            boolean checkTurn = true;
 
             //After the command input (askCommand)
             //this cycle starts the game
             //and controls it finished or not.
             //then program ask for a command again
-            while (isGameValid) {
-                turn(firstPlayer);
-                printTable(charState);
-                isGameValid = checkGameValid(defineSign());
 
-                turn(secondPlayer);
-                printTable(charState);
-                isGameValid = checkGameValid(defineSign());
+            while (isGameValid) {
+                turn(checkTurn);                            //make the move
+                printTable(charState);                      //print game field
+                isGameValid = checkGameValid(defineSign()); //check the game for validness
+                checkTurn = !checkTurn;                     //change turn to next player
             }
+
         }
     }
 
@@ -87,6 +100,10 @@ public class Main {
             String fullCommand;
             String[] commandList;
             fullCommand = scanner.nextLine();
+            if (fullCommand.equals("exit")) {
+                command = fullCommand;
+                return;
+            }
             commandList = fullCommand.split(" ", 3);
             command = commandList[0];
             firstPlayer = commandList[1];
@@ -99,9 +116,10 @@ public class Main {
     //or human. Try/catch is necessary to avoid not correct input.
     private boolean checkCommand() {
         try {
-            return command.equals("start") &&
-                    (firstPlayer.equals("easy") || firstPlayer.equals("user")) &&
-                    (secondPlayer.equals("easy") || secondPlayer.equals("user"));
+            return command.equals("exit") || (
+                    command.equals("start") &&
+                            (firstPlayer.equals("easy") || firstPlayer.equals("user")) &&
+                            (secondPlayer.equals("easy") || secondPlayer.equals("user")));
         } catch (NullPointerException e) {
             return false;
         }
@@ -156,6 +174,15 @@ public class Main {
                 turnEasyAI();
                 break;
         }
+    }
+
+    //methods that choose, who will make the turn -
+    //firstPlayer or secondPlayer
+    private void turn(boolean checkTurn) {
+        if (checkTurn) {
+            turn(firstPlayer);
+        }
+        turn(secondPlayer);
     }
 
     //human turn, hardcoding all input mistakes,
