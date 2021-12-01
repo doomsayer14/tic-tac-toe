@@ -9,6 +9,7 @@ public class Main {
 
     //contain our game field
     private char[][] charState;
+    private char sign;
 
     private Scanner scanner;
 
@@ -20,9 +21,6 @@ public class Main {
     private String firstPlayer;
     private String secondPlayer;
 
-    //while game is alive, this variable has to control its validness
-    private boolean isGameValid;
-
     public static void main(String[] args) {
         new Main().game();
     }
@@ -33,8 +31,6 @@ public class Main {
 
         scanner = new Scanner(System.in);
         random = new Random();
-
-        isGameValid = true;
 
         command = "";
     }
@@ -56,6 +52,9 @@ public class Main {
             //false means secondPlayer
             boolean checkTurn = true;
 
+            //while game is alive, this variable has to control its validness
+            boolean isGameValid = true;
+
             //After the command input (askCommand)
             //this cycle starts the game
             //and controls it finished or not.
@@ -64,7 +63,7 @@ public class Main {
             while (isGameValid) {
                 turn(checkTurn);                            //make the move
                 printTable(charState);                      //print game field
-                isGameValid = checkGameValid(defineSign()); //check the game for validness
+                isGameValid = checkGameValid(); //check the game for validness
                 checkTurn = !checkTurn;                     //change turn to next player
             }
 
@@ -126,7 +125,7 @@ public class Main {
     }
 
     //define "isGameValid" variable, that controls game validness
-    private boolean checkGameValid(char sign) {
+    private boolean checkGameValid() {
         if (checkWin(sign)) {
             System.out.println(sign + " wins");
             return false;
@@ -181,6 +180,7 @@ public class Main {
     private void turn(boolean checkTurn) {
         if (checkTurn) {
             turn(firstPlayer);
+            return;
         }
         turn(secondPlayer);
     }
@@ -205,7 +205,7 @@ public class Main {
                 scanner = new Scanner(System.in);
             }
         } while (!isCellValid(x, y));
-        charState[x][y] = defineSign();
+        setSignInCharState(x, y);
     }
 
     //easy AI turn, based on a random
@@ -216,9 +216,15 @@ public class Main {
             x = random.nextInt(3);
             y = random.nextInt(3);
         } while (!isCellValidAI(x, y));
-        charState[x][y] = defineSign();
+        setSignInCharState(x, y);
     }
 
+    //set right sign in game field (char array charState[][]),
+    //needs to satisfy DRY principle
+    private void setSignInCharState(int x, int y) {
+        sign = defineSign();
+        charState[x][y] = sign;
+    }
 
     //while human tries to type not occupied
     //and correct coordinates, this method always check player input
