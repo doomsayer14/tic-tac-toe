@@ -55,7 +55,6 @@ public class Main {
                 printTable(charState);
                 isGameValid = checkGameValid(defineSign());
             }
-
         }
     }
 
