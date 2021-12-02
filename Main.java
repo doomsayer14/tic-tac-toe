@@ -172,6 +172,9 @@ public class Main {
             case ("easy"):
                 turnEasyAI();
                 break;
+            case ("medium"):
+                turnMediumAI();
+                break;
         }
     }
 
@@ -208,15 +211,40 @@ public class Main {
         setSignInCharState(x, y);
     }
 
-    //easy AI turn, based on a random
-    private void turnEasyAI() {
+    //simply makes random move
+    private void randomMove() {
         int x = 4, y = 4;
-        System.out.println("Making move level \"easy\"");
         do {
             x = random.nextInt(3);
             y = random.nextInt(3);
         } while (!isCellValidAI(x, y));
         setSignInCharState(x, y);
+    }
+
+    //easy AI turn, based on a random
+    private void turnEasyAI() {
+        System.out.println("Making move level \"easy\"");
+        randomMove();
+    }
+
+    //medium AI turn. Description from the task:
+    /*
+    When the AI is playing at medium difficulty level, it makes moves using the following logic:
+
+    1. If it already has two in a row and can win with one further move, it does so.
+    2. If its opponent can win with one move, it plays the move necessary to block this.
+    3. Otherwise, it makes a random move.
+    */
+    private void turnMediumAI() {
+        int x = 4, y = 4;
+        System.out.println("Making move level \"medium\"");
+
+        //тут должна быть какая-то логика или метод, который проверяет,
+        //может ли сейчас бот выиграть или проиграть, и ставит знак, что бы выиграть
+        //или соответственно проиграть.
+        //Если такой ситуации не происходит, ходит на рандом как easy AI
+
+        randomMove();
     }
 
     //set right sign in game field (char array charState[][]),
