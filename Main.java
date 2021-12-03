@@ -117,8 +117,10 @@ public class Main {
         try {
             return command.equals("exit") || (
                     command.equals("start") &&
-                            (firstPlayer.equals("easy") || firstPlayer.equals("user")) &&
-                            (secondPlayer.equals("easy") || secondPlayer.equals("user")));
+                            (firstPlayer.equals("easy") || firstPlayer.equals("user")
+                                    || firstPlayer.equals("medium")) &&
+                            (secondPlayer.equals("easy") || secondPlayer.equals("user")
+                                    || secondPlayer.equals("medium")));
         } catch (NullPointerException e) {
             return false;
         }
@@ -236,13 +238,34 @@ public class Main {
     3. Otherwise, it makes a random move.
     */
     private void turnMediumAI() {
-        int x = 4, y = 4;
         System.out.println("Making move level \"medium\"");
 
-        //тут должна быть какая-то логика или метод, который проверяет,
-        //может ли сейчас бот выиграть или проиграть, и ставит знак, что бы выиграть
-        //или соответственно проиграть.
-        //Если такой ситуации не происходит, ходит на рандом как easy AI
+        //check for victory in one turn
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (isCellValidAI(i, j)) {
+                    setSignInCharState(i, j);
+                    if (checkWin(sign)) {
+                        return;
+                    }
+                    charState[i][j] = '_';
+                }
+            }
+        }
+
+        //prevent opponent's victory in one turn
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (isCellValidAI(i, j)) {
+                    setOppositeSignInCharState(i, j);
+                    if (checkWin(oppositeDefineSign())) {
+                        setSignInCharState(i, j);
+                        return;
+                    }
+                    charState[i][j] = '_';
+                }
+            }
+        }
 
         randomMove();
     }
@@ -251,6 +274,11 @@ public class Main {
     //needs to satisfy DRY principle
     private void setSignInCharState(int x, int y) {
         sign = defineSign();
+        charState[x][y] = sign;
+    }
+
+    private void setOppositeSignInCharState(int x, int y) {
+        sign = oppositeDefineSign();
         charState[x][y] = sign;
     }
 
@@ -294,6 +322,13 @@ public class Main {
             return 'X';
         }
         return 'O';
+    }
+
+    private char oppositeDefineSign() {
+        if (defineSign() == 'X') {
+            return 'O';
+        }
+        return 'X';
     }
 
     //simply prints game field. Additional methods added to
