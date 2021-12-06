@@ -5,10 +5,15 @@ import java.util.Scanner;
 
 //An instance of this class is used to call only
 //one method - game(), all logic described in this method.
-public class Main {
+class Main {
 
     //contain our game field
     private char[][] charState;
+
+    public char[][] getCharState() {
+        return charState;
+    }
+
     private char sign;
 
     private Scanner scanner;
@@ -20,6 +25,8 @@ public class Main {
     private String command;
     private String firstPlayer;
     private String secondPlayer;
+
+    private GFG gfg;
 
     public static void main(String[] args) {
         new Main().game();
@@ -33,6 +40,9 @@ public class Main {
         random = new Random();
 
         command = "";
+
+        gfg = new GFG();
+
     }
 
     //the main method
@@ -118,9 +128,9 @@ public class Main {
             return command.equals("exit") || (
                     command.equals("start") &&
                             (firstPlayer.equals("easy") || firstPlayer.equals("user")
-                                    || firstPlayer.equals("medium")) &&
+                                    || firstPlayer.equals("medium") || firstPlayer.equals("hard")) &&
                             (secondPlayer.equals("easy") || secondPlayer.equals("user")
-                                    || secondPlayer.equals("medium")));
+                                    || secondPlayer.equals("medium") || secondPlayer.equals("hard")));
         } catch (NullPointerException e) {
             return false;
         }
@@ -176,6 +186,9 @@ public class Main {
                 break;
             case ("medium"):
                 turnMediumAI();
+                break;
+            case ("hard"):
+                turnHardAI();
                 break;
         }
     }
@@ -270,13 +283,32 @@ public class Main {
         randomMove();
     }
 
-    //set right sign in game field (char array charState[][]),
-    //needs to satisfy DRY principle
+    //hard AI turn. Description from the task:
+    /*
+    The algorithm that implements this is called minimax.
+    It's a brute force algorithm that maximizes the value of the AI's position
+    and minimizes the worth of its opponent's. Minimax is not just for Tic-Tac-Toe.
+    You can use it with any other game where two players
+    make alternate moves, such as chess.
+     */
+    private void turnHardAI() {
+        System.out.println("Making move level \"hard\"");
+        int[] coordinates = new int[2];
+        System.arraycopy(gfg.getCoordinates(), 0, coordinates, 0, 2);
+        int x = coordinates[0];
+        int y = coordinates[1];
+        setSignInCharState(x, y);
+    }
+
+    //set actual sign for this turn
+    //in game field (char array charState[][])
     private void setSignInCharState(int x, int y) {
         sign = defineSign();
         charState[x][y] = sign;
     }
 
+    //sets opposite sign to the actual one
+    //in game field (char array charState[][])
     private void setOppositeSignInCharState(int x, int y) {
         sign = oppositeDefineSign();
         charState[x][y] = sign;
@@ -304,8 +336,8 @@ public class Main {
     }
 
     //when program needs to send as an argument in some methods
-    //'X' or 'O', this method decide, which is right
-    private char defineSign() {
+    //'X' or 'O', this method decide, which is actual for this turn
+    public char defineSign() {
         int x = 0;
         int y = 0;
         for (int i = 0; i < 3; i++) {
@@ -324,7 +356,8 @@ public class Main {
         return 'O';
     }
 
-    private char oppositeDefineSign() {
+    //returns opposite sign to the actual one
+    public char oppositeDefineSign() {
         if (defineSign() == 'X') {
             return 'O';
         }
@@ -356,4 +389,229 @@ public class Main {
             System.out.println("|");
         }
     }
+
+    //this class is made for algorithm "minimax". Full copypast
+    //from "geeksforgeeks.org".
+    //please don't even try to understand, just accept.
+
 }
+
+// Java program to find the
+// next optimal move for a player
+class GFG
+{
+    static class Move
+    {
+        int row, col;
+    };
+
+    static char player = 'x', opponent = 'o';
+
+    // This function returns true if there are moves
+// remaining on the board. It returns false if
+// there are no moves left to play.
+    static Boolean isMovesLeft(char[][] board)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                if (board[i][j] == '_')
+                    return true;
+        return false;
+    }
+
+    // This is the evaluation function as discussed
+// in the previous article ( http://goo.gl/sJgv68 )
+    static int evaluate(char[][] b)
+    {
+        // Checking for Rows for X or O victory.
+        for (int row = 0; row < 3; row++)
+        {
+            if (b[row][0] == b[row][1] &&
+                    b[row][1] == b[row][2])
+            {
+                if (b[row][0] == player)
+                    return +10;
+                else if (b[row][0] == opponent)
+                    return -10;
+            }
+        }
+
+        // Checking for Columns for X or O victory.
+        for (int col = 0; col < 3; col++)
+        {
+            if (b[0][col] == b[1][col] &&
+                    b[1][col] == b[2][col])
+            {
+                if (b[0][col] == player)
+                    return +10;
+
+                else if (b[0][col] == opponent)
+                    return -10;
+            }
+        }
+
+        // Checking for Diagonals for X or O victory.
+        if (b[0][0] == b[1][1] && b[1][1] == b[2][2])
+        {
+            if (b[0][0] == player)
+                return +10;
+            else if (b[0][0] == opponent)
+                return -10;
+        }
+
+        if (b[0][2] == b[1][1] && b[1][1] == b[2][0])
+        {
+            if (b[0][2] == player)
+                return +10;
+            else if (b[0][2] == opponent)
+                return -10;
+        }
+
+        // Else if none of them have won then return 0
+        return 0;
+    }
+
+    // This is the minimax function. It considers all
+// the possible ways the game can go and returns
+// the value of the board
+    static int minimax(char[][] board,
+                       int depth, Boolean isMax)
+    {
+        int score = evaluate(board);
+
+        // If Maximizer has won the game
+        // return his/her evaluated score
+        if (score == 10)
+            return score;
+
+        // If Minimizer has won the game
+        // return his/her evaluated score
+        if (score == -10)
+            return score;
+
+        // If there are no more moves and
+        // no winner then it is a tie
+        if (!isMovesLeft(board))
+            return 0;
+
+        // If this maximizer's move
+        if (isMax)
+        {
+            int best = -1000;
+
+            // Traverse all cells
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    // Check if cell is empty
+                    if (board[i][j]=='_')
+                    {
+                        // Make the move
+                        board[i][j] = player;
+
+                        // Call minimax recursively and choose
+                        // the maximum value
+                        best = Math.max(best, minimax(board,
+                                depth + 1, !isMax));
+
+                        // Undo the move
+                        board[i][j] = '_';
+                    }
+                }
+            }
+            return best;
+        }
+
+        // If this minimizer's move
+        else
+        {
+            int best = 1000;
+
+            // Traverse all cells
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    // Check if cell is empty
+                    if (board[i][j] == '_')
+                    {
+                        // Make the move
+                        board[i][j] = opponent;
+
+                        // Call minimax recursively and choose
+                        // the minimum value
+                        best = Math.min(best, minimax(board,
+                                depth + 1, !isMax));
+
+                        // Undo the move
+                        board[i][j] = '_';
+                    }
+                }
+            }
+            return best;
+        }
+    }
+
+    // This will return the best possible
+// move for the player
+    static Move findBestMove(char[][] board)
+    {
+        int bestVal = -1000;
+        Move bestMove = new Move();
+        bestMove.row = -1;
+        bestMove.col = -1;
+
+        // Traverse all cells, evaluate minimax function
+        // for all empty cells. And return the cell
+        // with optimal value.
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                // Check if cell is empty
+                if (board[i][j] == '_')
+                {
+                    // Make the move
+                    board[i][j] = player;
+
+                    // compute evaluation function for this
+                    // move.
+                    int moveVal = minimax(board, 0, false);
+
+                    // Undo the move
+                    board[i][j] = '_';
+
+                    // If the value of the current move is
+                    // more than the best value, then update
+                    // best/
+                    if (moveVal > bestVal)
+                    {
+                        bestMove.row = i;
+                        bestMove.col = j;
+                        bestVal = moveVal;
+                    }
+                }
+            }
+        }
+
+        return bestMove;
+    }
+
+    // Driver code
+    public int[] getCoordinates(char[][] charState)
+    {
+        char board[][] = {{ 'x', 'o', 'x' },
+                { 'o', 'o', 'x' },
+                { '_', '_', '_' }};
+
+        Move bestMove = findBestMove(board);
+
+        int[] move = {bestMove.row, bestMove.col};
+        return move;
+    }
+
+}
+
+// This code is contributed by PrinciRaj1992
+
