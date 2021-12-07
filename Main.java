@@ -23,7 +23,7 @@ public class Main {
 
     //getters and setters
 
-    //-----------------------------//
+    //-----------------------------// 
     public String getInputLine() {
         return inputLine;
     }
