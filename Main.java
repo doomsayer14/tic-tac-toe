@@ -8,25 +8,21 @@ import java.util.Scanner;
 class Main {
 
     //contain our game field
-    private char[][] charState;
-
-    public char[][] getCharState() {
-        return charState;
-    }
+    private final char[][] charState;
 
     private char sign;
 
     private Scanner scanner;
 
     // for easyAI
-    private Random random;
+    private final Random random;
 
     //line e.g. "start easy user" splits on 3 parts
     private String command;
     private String firstPlayer;
     private String secondPlayer;
 
-    private GFG gfg;
+    private final Minimax minimax;
 
     public static void main(String[] args) {
         new Main().game();
@@ -41,7 +37,7 @@ class Main {
 
         command = "";
 
-        gfg = new GFG();
+        minimax = new Minimax();
 
     }
 
@@ -294,7 +290,8 @@ class Main {
     private void turnHardAI() {
         System.out.println("Making move level \"hard\"");
         int[] coordinates = new int[2];
-        System.arraycopy(gfg.getCoordinates(), 0, coordinates, 0, 2);
+        System.arraycopy(minimax.getCoordinates(charState, defineSign(), oppositeDefineSign()),
+                0, coordinates, 0, 2);
         int x = coordinates[0];
         int y = coordinates[1];
         setSignInCharState(x, y);
@@ -392,26 +389,23 @@ class Main {
 
     //this class is made for algorithm "minimax". Full copypast
     //from "geeksforgeeks.org".
-    //please don't even try to understand, just accept.
+    //please don't even try to understand, just accept, that there is
+    //method "getCoordinates", which returns the best
+    //row and column in an array
 
 }
 
 // Java program to find the
 // next optimal move for a player
-class GFG
-{
-    static class Move
-    {
+class Minimax {
+    static class Move {
         int row, col;
-    };
-
-    static char player = 'x', opponent = 'o';
+    }
 
     // This function returns true if there are moves
 // remaining on the board. It returns false if
 // there are no moves left to play.
-    static Boolean isMovesLeft(char[][] board)
-    {
+    static Boolean isMovesLeft(char[][] board) {
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
                 if (board[i][j] == '_')
@@ -421,14 +415,11 @@ class GFG
 
     // This is the evaluation function as discussed
 // in the previous article ( http://goo.gl/sJgv68 )
-    static int evaluate(char[][] b)
-    {
+    static int evaluate(char[][] b, char player, char opponent) {
         // Checking for Rows for X or O victory.
-        for (int row = 0; row < 3; row++)
-        {
+        for (int row = 0; row < 3; row++) {
             if (b[row][0] == b[row][1] &&
-                    b[row][1] == b[row][2])
-            {
+                    b[row][1] == b[row][2]) {
                 if (b[row][0] == player)
                     return +10;
                 else if (b[row][0] == opponent)
@@ -437,11 +428,9 @@ class GFG
         }
 
         // Checking for Columns for X or O victory.
-        for (int col = 0; col < 3; col++)
-        {
+        for (int col = 0; col < 3; col++) {
             if (b[0][col] == b[1][col] &&
-                    b[1][col] == b[2][col])
-            {
+                    b[1][col] == b[2][col]) {
                 if (b[0][col] == player)
                     return +10;
 
@@ -451,16 +440,14 @@ class GFG
         }
 
         // Checking for Diagonals for X or O victory.
-        if (b[0][0] == b[1][1] && b[1][1] == b[2][2])
-        {
+        if (b[0][0] == b[1][1] && b[1][1] == b[2][2]) {
             if (b[0][0] == player)
                 return +10;
             else if (b[0][0] == opponent)
                 return -10;
         }
 
-        if (b[0][2] == b[1][1] && b[1][1] == b[2][0])
-        {
+        if (b[0][2] == b[1][1] && b[1][1] == b[2][0]) {
             if (b[0][2] == player)
                 return +10;
             else if (b[0][2] == opponent)
@@ -475,9 +462,8 @@ class GFG
 // the possible ways the game can go and returns
 // the value of the board
     static int minimax(char[][] board,
-                       int depth, Boolean isMax)
-    {
-        int score = evaluate(board);
+                       int depth, Boolean isMax, char player, char opponent) {
+        int score = evaluate(board, player, opponent);
 
         // If Maximizer has won the game
         // return his/her evaluated score
@@ -495,68 +481,59 @@ class GFG
             return 0;
 
         // If this maximizer's move
-        if (isMax)
-        {
-            int best = -1000;
+        int best;
+        if (isMax) {
+            best = -1000;
 
             // Traverse all cells
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
                     // Check if cell is empty
-                    if (board[i][j]=='_')
-                    {
+                    if (board[i][j] == '_') {
                         // Make the move
                         board[i][j] = player;
 
                         // Call minimax recursively and choose
                         // the maximum value
                         best = Math.max(best, minimax(board,
-                                depth + 1, !isMax));
+                                depth + 1, !isMax, player, opponent));
 
                         // Undo the move
                         board[i][j] = '_';
                     }
                 }
             }
-            return best;
         }
 
         // If this minimizer's move
-        else
-        {
-            int best = 1000;
+        else {
+            best = 1000;
 
             // Traverse all cells
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
                     // Check if cell is empty
-                    if (board[i][j] == '_')
-                    {
+                    if (board[i][j] == '_') {
                         // Make the move
                         board[i][j] = opponent;
 
                         // Call minimax recursively and choose
                         // the minimum value
                         best = Math.min(best, minimax(board,
-                                depth + 1, !isMax));
+                                depth + 1, !isMax, player, opponent));
 
                         // Undo the move
                         board[i][j] = '_';
                     }
                 }
             }
-            return best;
         }
+        return best;
     }
 
     // This will return the best possible
 // move for the player
-    static Move findBestMove(char[][] board)
-    {
+    static Move findBestMove(char[][] board, char player, char opponent) {
         int bestVal = -1000;
         Move bestMove = new Move();
         bestMove.row = -1;
@@ -565,19 +542,16 @@ class GFG
         // Traverse all cells, evaluate minimax function
         // for all empty cells. And return the cell
         // with optimal value.
-        for (int i = 0; i < 3; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
                 // Check if cell is empty
-                if (board[i][j] == '_')
-                {
+                if (board[i][j] == '_') {
                     // Make the move
                     board[i][j] = player;
 
                     // compute evaluation function for this
                     // move.
-                    int moveVal = minimax(board, 0, false);
+                    int moveVal = minimax(board, 0, false, player, opponent);
 
                     // Undo the move
                     board[i][j] = '_';
@@ -585,8 +559,7 @@ class GFG
                     // If the value of the current move is
                     // more than the best value, then update
                     // best/
-                    if (moveVal > bestVal)
-                    {
+                    if (moveVal > bestVal) {
                         bestMove.row = i;
                         bestMove.col = j;
                         bestVal = moveVal;
@@ -598,20 +571,14 @@ class GFG
         return bestMove;
     }
 
-    // Driver code
-    public int[] getCoordinates(char[][] charState)
-    {
-        char board[][] = {{ 'x', 'o', 'x' },
-                { 'o', 'o', 'x' },
-                { '_', '_', '_' }};
+    // the main method!
+    public int[] getCoordinates(char[][] charState, char player, char opponent) {
+        char[][] board = new char[9][9];
+        System.arraycopy(charState, 0, board, 0, charState.length);
 
-        Move bestMove = findBestMove(board);
-
-        int[] move = {bestMove.row, bestMove.col};
-        return move;
+        Move bestMove = findBestMove(board, player, opponent);
+        return new int[]{bestMove.row, bestMove.col};
     }
 
 }
-
-// This code is contributed by PrinciRaj1992
 
