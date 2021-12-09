@@ -1,18 +1,13 @@
-package search;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 
 class Main {
 
-    private final BufferedReader reader;
+    private static BufferedReader fileReader;
 
-    //array of data about people, separated with space
-    private String[] words;
+    private final BufferedReader consoleReader;
 
     //typed by user data, by which program search people
     private String data;
@@ -20,8 +15,14 @@ class Main {
     //number of people, which user can type in
     private int numOfPeople;
 
-    //enumeration of all people
-    private static String[][] people;
+    //array of data about people, separated with space
+    private String[] words;
+
+    //container for all people
+    private final List<String> people;
+
+    //array of all information
+    private static String[][] information;
 
     //people which was founded by data
     private static List<String> foundedPeople;
@@ -29,11 +30,12 @@ class Main {
     //number of command in user menu
     private static int command;
 
-    public Main() {
+    public Main() throws FileNotFoundException {
         numOfPeople = 0;
         foundedPeople = new ArrayList<>();
-        reader = new BufferedReader(new InputStreamReader(System.in));
+        consoleReader = new BufferedReader(new InputStreamReader(System.in));
         command = -1;
+        people = new ArrayList<>();
     }
 
     //getters and setters
@@ -56,42 +58,53 @@ class Main {
         this.data = data;
     }
 
-    //-----------------------------//
+//-----------------------------//
 
     //start of the program. Calls method "process()",
     //all logic described here
     public static void main(String[] args) throws IOException {
+        File file = new File("text.txt");
+        FileReader fr = new FileReader(file);
+        fileReader = new BufferedReader(fr);
+
         new Main().process();
     }
 
     //main method
     private void process() throws IOException {
 
-        //asks and save number of people, which user can type in
-        System.out.println("Enter the number of people:");
-        String s = reader.readLine();
-        setNumOfPeople(Integer.parseInt(s));
 
-        people = new String[getNumOfPeople()][3];
+        int countLines = -1;
 
-        //user types in all the people in array "people"
-        System.out.println("Enter all people:");
+        //counting people in our file
+        String s = fileReader.readLine();
+        people.add(s);
+        countLines++;
+        while (s != null) {
+            s = fileReader.readLine();
+            people.add(s);
+            countLines++;
+        }
+        setNumOfPeople(countLines);
+        people.remove(people.size() - 1);
+
+        information = new String[getNumOfPeople()][3];
+        //reading information from "people" to "information"
         for (int i = 0; i < getNumOfPeople(); i++) {
-            String str = reader.readLine();
-            words = str.split(" ");
+            words = people.get(i).split(" ");
             for (int j = 0; j < words.length; j++) {
-                people[i][j] = words[j];
+                information[i][j] = words[j];
             }
         }
 
         while (true) {
             showUserMenu();
-            s = reader.readLine();
+            s = consoleReader.readLine();
             command = Integer.parseInt(s);
             switch (command) {
                 case 1:
                     System.out.println("Enter a name or email to search all suitable people.");
-                    setData(reader.readLine());
+                    setData(consoleReader.readLine());
                     searchInformation();
                     break;
                 case 2:
@@ -104,7 +117,6 @@ class Main {
                     System.out.println("Incorrect option! Try again.");
             }
         }
-
     }
 
     //displays all the people, that user typed in
@@ -114,8 +126,8 @@ class Main {
         System.out.println("=== List of people ===");
         for (int i = 0; i < getNumOfPeople(); i++) {
             for (int j = 0; j < 3; j++) {
-                if (people[i][j] != null) {
-                    sb.append(people[i][j]).append(" ");
+                if (information[i][j] != null) {
+                    sb.append(information[i][j]).append(" ");
                 }
             }
             sb.deleteCharAt(sb.length() - 1);
@@ -130,31 +142,20 @@ class Main {
 
         for (int i = 0; i < getNumOfPeople(); i++) {
             for (int j = 0; j < 3; j++) {
-                if (people[i][j] != null) {
-                    if (people[i][j].contains(getData()) || people[i][j].equalsIgnoreCase(getData())) {
-                        for (int l = 0; l < 3; l++) {
-                            if (people[i][l] != null) {
-                                sb.append(people[i][l]).append(" ");
-                            }
-                        }
-                        sb.deleteCharAt(sb.length() - 1);
-                        foundedPeople.add(sb.toString());
-                        sb.delete(0, sb.length());
-                    }
+                if (information[i][j] != null && (information[i][j].contains(getData()) || information[i][j].equalsIgnoreCase(getData()))) {
+                    foundedPeople.add(people.get(i));
+                    j = 3;
                 }
             }
         }
 
         if (foundedPeople.isEmpty()) {
             System.out.println("No matching people found.");
-
         } else {
-
             System.out.println("Found people:");
             for (String str : foundedPeople) {
                 System.out.println(str);
             }
-
             foundedPeople.clear();
         }
 
