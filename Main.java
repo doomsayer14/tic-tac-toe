@@ -1,22 +1,20 @@
 package search;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.List;
 
-public class Main {
 
-    private final Scanner scanner;
+class Main {
 
-    //line, that user type in console
-    private String inputLine;
+    private final BufferedReader reader;
 
-    //array of words in "inputLine", separated with space
+    //array of data about people, separated with space
     private String[] words;
 
-    //word, that we have to search for
-    private String specWord;
-
-    //typed buy user data. With this data program search people
+    //typed by user data, by which program search people
     private String data;
 
     //number of people, which user can type in
@@ -26,45 +24,21 @@ public class Main {
     private int numOfQueries;
 
     //enumeration of all people
-    private String[][] people;
+    private static String[][] people;
 
     //people which was founded by data
-    private ArrayList<String> foundedPeople;
+    private static List<String> foundedPeople;
 
     public Main() {
-        scanner = new Scanner(System.in);
-        inputLine = "";
-        specWord = "";
         numOfPeople = 0;
         numOfQueries = 0;
         foundedPeople = new ArrayList<>();
+        reader = new BufferedReader(new InputStreamReader(System.in));
     }
 
     //getters and setters
 
     //-----------------------------//
-    public String getInputLine() {
-        return inputLine;
-    }
-
-    public void setInputLine(String inputLine) {
-        this.inputLine = inputLine;
-    }
-
-    //впадлу обращаться к массиву через гетер
-    //public String[] getWords() { return words; }
-
-    public void setWords(String[] words) {
-        this.words = words;
-    }
-
-    public String getSpecWord() {
-        return specWord;
-    }
-
-    public void setSpecWord(String specWord) {
-        this.specWord = specWord;
-    }
 
     public int getNumOfPeople() {
         return numOfPeople;
@@ -94,42 +68,83 @@ public class Main {
 
     //start of the program. Calls method "process()",
     //all logic described here
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         new Main().process();
     }
 
     //main method
-    private void process() {
+    private void process() throws IOException {
         System.out.println("Enter the number of people:");
-        setNumOfPeople(scanner.nextInt());
+
+        String s = reader.readLine();
+        setNumOfPeople(Integer.parseInt(s));
+
 
         people = new String[getNumOfPeople()][3];
 
+
         System.out.println("Enter all people:");
-        for (int i = 0; i < getNumOfQueries(); i++) {
-            setInputLine(scanner.nextLine());
-            setWords(getInputLine().split(" "));
+
+        for (int i = 0; i < getNumOfPeople(); i++) {
+            String str = reader.readLine();
+            words = str.split(" ");
             for (int j = 0; j < words.length; j++) {
                 people[i][j] = words[j];
             }
         }
 
-        System.out.println("Enter the number of search queries:");
-        setNumOfQueries(scanner.nextInt());
+        // Dwight Joseph djo@gmail.com
+        // Rene Webb webb@gmail.com
+        // Katie Jacobs
+        // Erick Harrington harrington@gmail.com
+        // Myrtle Medina
+        // Erick Burgess
 
+        //ERICK
+        //unknown
+        //WEBB@gmail.com
+
+
+        System.out.println("Enter the number of search queries:");
+        s = reader.readLine();
+        setNumOfQueries(Integer.parseInt(s));
+
+
+        StringBuilder sb = new StringBuilder();
         for (int k = 0; k < getNumOfQueries(); k++) {
             System.out.println("Enter data to search people:");
-            setData(scanner.nextLine());
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < words.length; j++) {
-                    if (people[i][j].equals(getData())) {
-                        foundedPeople.add(people[i][j]);
+            setData(reader.readLine());
+
+            for (int i = 0; i < getNumOfPeople(); i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (people[i][j] != null) {
+                        if (people[i][j].contains(getData()) || people[i][j].equalsIgnoreCase(getData())) {
+                            for (int l = 0; l < 3; l++) {
+                                if (people[i][l] != null) {
+                                    sb.append(people[i][l]).append(" ");
+                                }
+                            }
+                            sb.deleteCharAt(sb.length() - 1);
+                            foundedPeople.add(sb.toString());
+                            sb.delete(0, sb.length());
+                        }
                     }
                 }
             }
+
             if (foundedPeople.isEmpty()) {
                 System.out.println("No matching people found.");
+
+            } else {
+
+                System.out.println("Found people:");
+                for (String str : foundedPeople) {
+                    System.out.println(str);
+                }
+
+                foundedPeople.clear();
             }
+
         }
     }
 }
