@@ -105,18 +105,6 @@ class Main {
             }
         }
 
-
-        // Dwight Joseph djo@gmail.com
-        // Rene Webb webb@gmail.com
-        // Katie Jacobs
-        // Erick Harrington harrington@gmail.com
-        // Myrtle Medina
-        // Erick Burgess
-
-        //ERICK
-        //unknown
-        //WEBB@gmail.com
-
     }
 
     //displays all the people, that user typed in
