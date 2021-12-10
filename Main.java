@@ -1,11 +1,12 @@
+package search;
+
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 
 class Main {
+
+    private Map<String, List<Integer>> searchMap;
 
     private static BufferedReader fileReader;
 
@@ -38,6 +39,7 @@ class Main {
         consoleReader = new BufferedReader(new InputStreamReader(System.in));
         command = -1;
         people = new ArrayList<>();
+        searchMap = new HashMap<>();
     }
 
     //getters and setters
@@ -65,7 +67,7 @@ class Main {
     //start of the program. Calls method "process()",
     //all logic described here
     public static void main(String[] args) throws IOException {
-        File file = new File("text.txt");
+        File file = new File(args[1]);
         FileReader fr = new FileReader(file);
         fileReader = new BufferedReader(fr);
 
@@ -98,16 +100,17 @@ class Main {
                 information[i][j] = words[j];
             }
         }
-
+        assembleMap();
         while (true) {
             showUserMenu();
             s = consoleReader.readLine();
             command = Integer.parseInt(s);
             switch (command) {
                 case 1:
-                    System.out.println("Enter a name or email to search all suitable people.");
-                    setData(consoleReader.readLine());
-                    searchInformation();
+                    findPerson();
+//                    System.out.println("Enter a name or email to search all suitable people.");
+//                    setData(consoleReader.readLine());
+//                    searchInformation();
                     break;
                 case 2:
                     showAllPeople();
@@ -117,6 +120,34 @@ class Main {
                     return;
                 default:
                     System.out.println("Incorrect option! Try again.");
+            }
+        }
+    }
+
+    private void findPerson() throws IOException {
+        System.out.println("Enter a name or email to search all suitable people.");
+        String s = consoleReader.readLine();
+        List<Integer> list = searchMap.get(s.toLowerCase(Locale.ROOT));
+        if (Objects.nonNull(list)) {
+            System.out.println(list.size() + " persons found:");
+            for (Integer i: list) {
+                System.out.println(people.get(i));
+            }
+            return;
+        }
+        System.out.println("No matching people found.");
+    }
+
+    private void assembleMap() {
+        for (int i = 0; i < people.size(); i++) {
+            String[] strings = people.get(i).split(" ");
+            for (String key : strings) {
+                List<Integer> values = searchMap.get(key.toLowerCase(Locale.ROOT));
+                if (values == null) {
+                    values = new ArrayList<>();
+                }
+                values.add(i);
+                searchMap.put(key.toLowerCase(Locale.ROOT), values);
             }
         }
     }
@@ -171,7 +202,7 @@ class Main {
     //displays user menu
     private void showUserMenu() {
         System.out.println("=== Menu ===");
-        System.out.println("1. Search information.");
+        System.out.println("1. Find a person.");
         System.out.println("2. Print all data.");
         System.out.println("0. Exit.");
     }
