@@ -1,6 +1,9 @@
+package search;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 
 class Main {
@@ -63,7 +66,7 @@ class Main {
     //start of the program. Calls method "process()",
     //all logic described here
     public static void main(String[] args) throws IOException {
-        File file = new File("text.txt");
+        File file = new File(args[1]);
         FileReader fr = new FileReader(file);
         fileReader = new BufferedReader(fr);
 
@@ -142,9 +145,13 @@ class Main {
 
         for (int i = 0; i < getNumOfPeople(); i++) {
             for (int j = 0; j < 3; j++) {
-                if (information[i][j] != null && (information[i][j].contains(getData()) || information[i][j].equalsIgnoreCase(getData()))) {
-                    foundedPeople.add(people.get(i));
-                    j = 3;
+                if (information[i][j] != null) {
+                    String inf = information[i][j].toLowerCase(Locale.ROOT);
+                    String d = getData().toLowerCase(Locale.ROOT);
+                    if (inf.contains(d)) {
+                        foundedPeople.add(people.get(i));
+                        j = 3;
+                    }
                 }
             }
         }
