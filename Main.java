@@ -18,9 +18,6 @@ class Main {
     //number of people, which user can type in
     private int numOfPeople;
 
-    //array of data about people, separated with space
-    private String[] words;
-
     //container for all people
     private final List<String> people;
 
@@ -77,7 +74,6 @@ class Main {
     //main method
     private void process() throws IOException {
 
-
         int countLines = -1;
 
         //counting people in our file
@@ -95,7 +91,8 @@ class Main {
         information = new String[getNumOfPeople()][3];
         //reading information from "people" to "information"
         for (int i = 0; i < getNumOfPeople(); i++) {
-            words = people.get(i).split(" ");
+            //array of data about people, separated with space
+            String[] words = people.get(i).split(" ");
             for (int j = 0; j < words.length; j++) {
                 information[i][j] = words[j];
             }
@@ -107,10 +104,7 @@ class Main {
             command = Integer.parseInt(s);
             switch (command) {
                 case 1:
-                    findPerson();
-//                    System.out.println("Enter a name or email to search all suitable people.");
-//                    setData(consoleReader.readLine());
-//                    searchInformation();
+                    find();
                     break;
                 case 2:
                     showAllPeople();
@@ -124,19 +118,86 @@ class Main {
         }
     }
 
-    private void findPerson() throws IOException {
-        System.out.println("Enter a name or email to search all suitable people.");
+    private void find() throws IOException {
+        System.out.println("Select a matching strategy: ALL, ANY, NONE");
         String s = consoleReader.readLine();
-        List<Integer> list = searchMap.get(s.toLowerCase(Locale.ROOT));
-        if (Objects.nonNull(list)) {
+        System.out.println("Enter a name or email to search all suitable people.");
+        String s1 = consoleReader.readLine();
+        switch (s) {
+            case ("ALL"):
+                List<Integer> listALL = findALL(s1);
+                show(listALL);
+                break;
+            case ("ANY"):
+                List<Integer> listANY = findANY(s1);
+                show(listANY);
+                break;
+            case ("NONE"):
+                List<Integer> listNONE = findNONE(s1);
+                show(listNONE);
+                break;
+            default:
+                find();
+                break;
+        }
+    }
+
+    //If the strategy is NONE, the program should print lines that do not contain words from the query at all
+    private List<Integer> findNONE(String s1) throws IOException {
+        List<Integer> resList = new ArrayList<>();
+        List<Integer> listMatches = findANY(s1);
+
+        for (int i = 0; i < people.size(); i++) {
+            if (!listMatches.contains(i)) {
+                resList.add(i);
+            }
+        }
+        return resList;
+    }
+
+    //If the strategy is ANY, the program should print the lines containing at least one word from the query.
+    private List<Integer> findANY(String s) throws IOException {
+        List<Integer> list = new ArrayList<>();
+
+        String[] arr = s.split(" ");
+        for (String value : arr) {
+            if (searchMap.get(value.toLowerCase(Locale.ROOT)) != null) {
+                list.addAll(searchMap.get(value.toLowerCase(Locale.ROOT)));
+            }
+        }
+        return list;
+    }
+
+    private void show(List<Integer> list) {
+        if (!list.isEmpty()) {
             System.out.println(list.size() + " persons found:");
-            for (Integer i: list) {
+            for (Integer i : list) {
                 System.out.println(people.get(i));
             }
             return;
         }
         System.out.println("No matching people found.");
     }
+
+    //If the strategy is ALL, the program should print lines containing all the words from the query.
+    private List<Integer> findALL(String s) throws IOException {
+
+        List<Integer> result;
+        List<Integer> res2;
+
+        String[] arr = s.split(" ");
+
+        result = findANY(arr[0]);
+
+        for (int i = 1; i < arr.length; i++) {
+            res2 = findANY(arr[i]);
+
+            result.retainAll(res2);
+        }
+
+        return result;
+    }
+
 
     private void assembleMap() {
         for (int i = 0; i < people.size(); i++) {
