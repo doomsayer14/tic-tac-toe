@@ -14,10 +14,9 @@ class Main {
                 DataOutputStream output = new DataOutputStream(socket.getOutputStream())
         ) {
             System.out.println("Client started!");
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-            String msg = bufferedReader.readLine();
-            output.writeUTF(msg); // sending message to the server
-            System.out.println("Sent: " + msg);
+
+            output.writeUTF("Give me a record # 12"); // sending message to the server
+            System.out.println("Sent: Give me a record # 12");
             String receivedMsg = input.readUTF(); // response message
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
