@@ -1,29 +1,74 @@
 package server;
 
+import com.google.gson.Gson;
+
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     private static final int PORT = 34522;
 
     //simulated database of strings of size 1000
-    private final List<String> dataBase;
+    private final Map<String, String> dataBase;
 
-    private int index;
+    private final Gson gson;
 
-    public int getIndex() {
-        return index;
+    //keep client's request
+    private Request request;
+
+    //output for client
+    private Response response;
+
+    //command, that user has to type in
+    private String type;
+
+    //key of dataBase
+    private String key;
+
+    //value to save in the database
+    private String value;
+
+    //getters and setters
+    //-------------------------------
+    public String getType() {
+        return type;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
+    public void setType(String type) {
+        this.type = type;
     }
 
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+    //-------------------------------
+
+    //constructor
+    //-------------------------------
     private Main() {
-        dataBase = new ArrayList<>(1000);
+        type = "";
+        key = "";
+        value = "";
+        dataBase = new HashMap<>();
+        gson = new Gson();
     }
+    //-------------------------------
 
     public static void main(String[] args) {
         new Main().runServer();
@@ -32,60 +77,53 @@ public class Main {
     private void runServer() {
         try (ServerSocket server = new ServerSocket(PORT)) {
             System.out.println("Server started!");
-            initDataBase();
             while (true) {
                 try (
                         Socket socket = server.accept(); // accepting a new client
                         DataInputStream input = new DataInputStream(socket.getInputStream());
                         DataOutputStream output = new DataOutputStream(socket.getOutputStream())
                 ) {
-                    String msg = input.readUTF(); // reading a message
-                    String[] arr = msg.split(" ", 3);
-                    if (arr.length == 0) {
-                        output.writeUTF("ERROR"); // resend it to the client
-                    } else {
-                        if (!arr[0].equals("exit")) {
-                            setIndex(Integer.parseInt(arr[1]));
-                        } else {
-                            setIndex(-1);
-                        }
-                        switch (arr[0]) {
-                            case ("set"):
-                                setInformation(getIndex(), arr[2]);
-                                if (dataBase.get(getIndex() - 1).equals("")) {
-                                    output.writeUTF("ERROR");
-                                } else {
-                                    output.writeUTF("OK");
-                                }
-                                break;
-                            case ("get"):
-                                String s = getInfo(getIndex());
-                                if (s.equals("") || s.equals("ERROR")) {
-                                    output.writeUTF("ERROR");
-                                } else {
-                                    output.writeUTF(s);
-                                }
-                                break;
-                            case ("delete"):
-                                if (getIndex() < 1 || getIndex() > 1000) {
-                                    output.writeUTF("ERROR");
-                                } else {
-                                    deleteInfo(getIndex());
-                                    if (!dataBase.get(index - 1).equals("")) {
-                                        output.writeUTF("ERROR");
-                                    } else {
-                                        output.writeUTF("OK");
-                                    }
-                                }
-                                break;
-                            case ("exit"):
-                                output.writeUTF("OK"); // resend it to the client
-                                return;
-                            default:
-                                System.out.println("ERROR");
-                                break;
-                        }
+                    String inputString = input.readUTF();
+                    String str = inputString.replace("\\", "");
+
+
+                    request = gson.fromJson(str, Request.class);// reading a message
+                    setType(request.getType());
+                    setKey(request.getKey());
+                    setValue(request.getValue());
+
+                    switch (request.getType()) {
+                        case ("set"):
+                            setInformation(getKey(), getValue());
+                            output.writeUTF(gson.toJson(new Response("OK")));
+                            break;
+                        case ("get"):
+                            String s = getInfo(getKey());
+                            if (s.equals("ERROR")) {
+                                output.writeUTF(gson.toJson(new Response(s, "No such key")));
+                            } else {
+                                response = new Response();
+                                response.setResponse("OK");
+                                response.setValue(s);
+                                output.writeUTF(gson.toJson(response));
+                            }
+                            break;
+                        case ("delete"):
+                            if (!dataBase.containsKey(getKey())) {
+                                output.writeUTF(gson.toJson(new Response("ERROR", "No such key")));
+                            } else {
+                                deleteInfo(getKey());
+                                output.writeUTF(gson.toJson(new Response("OK")));
+                            }
+                            break;
+                        case ("exit"):
+                            output.writeUTF("OK"); // resend it to the client
+                            return;
+                        default:
+                            System.out.println("ERROR");
+                            break;
                     }
+
                 }
             }
         } catch (IOException e) {
@@ -93,28 +131,128 @@ public class Main {
         }
     }
 
-    private void deleteInfo(int index) {
-        dataBase.set(index - 1, "");
+    private void deleteInfo(String key) {
+        dataBase.remove(key);
     }
 
-    private String getInfo(int index) {
-        if (index >= 1 && index <= 1000) {
-            return dataBase.get(index - 1);
+    private String getInfo(String key) {
+        if (dataBase.containsKey(key)) {
+            return dataBase.get(key);
         }
         return "ERROR";
     }
 
     //set specified string in specified index
-    private void setInformation(int index, String info) {
-        if (index >= 1 && index <= 1000) {
-            dataBase.set(index - 1, info);
-        }
+    private void setInformation(String key, String value) {
+        dataBase.put(key, value);
     }
 
-    //called once to init dataBase with ""
-    private void initDataBase() {
-        for (int i = 0; i < 1000; i++) {
-            dataBase.add("");
+    //two classes below made for convenience to work with Gson
+
+    //class for output to client
+    private class Response {
+        private String response;
+        private String reason;
+        private String value;
+
+        //Constructors
+        //-------------------------------
+        public Response() {
         }
+
+        public Response(String response) {
+            this.response = response;
+        }
+
+        public Response(String response, String reason) {
+            this.response = response;
+            this.reason = reason;
+        }
+
+        //-------------------------------
+
+        //getters, setters
+        //-------------------------------
+        public String getResponse() {
+            return response;
+        }
+
+        public void setResponse(String response) {
+            this.response = response;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+
+        //-------------------------------
+    }
+
+    //class for client's input
+    private class Request {
+        private String type;
+        private String key;
+        private String value;
+
+        //Constructors
+        //-------------------------------
+        private Request() {
+
+        }
+
+        public Request(String type) {
+            this.type = type;
+        }
+
+        public Request(String type, String key) {
+            this.type = type;
+            this.key = key;
+        }
+
+        public Request(String type, String key, String value) {
+            this.type = type;
+            this.key = key;
+            this.value = value;
+        }
+        //-------------------------------
+
+        //getters and setters
+        //-------------------------------
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+        //-------------------------------
     }
 }
