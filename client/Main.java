@@ -1,59 +1,71 @@
 package client;
 
 import com.beust.jcommander.Parameter;
+import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
 
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 34522;
 
+    //command to request from a type
+    @Parameter(names = "-in")
+    private String jsonFile;
+
     //command, that user has to type in
     @Parameter(names = "-t")
-    private String command;
+    private String type;
 
-    //index for command
-    @Parameter(names = "-i")
-    private int index;
+    //key in dataBase
+    @Parameter(names = "-k")
+    private String key;
 
     //value to save in the database
-    @Parameter(names = "-m")
-    private String info;
+    @Parameter(names = "-v")
+    private String value;
+
+    private final Gson gson;
 
     boolean check = true;
 
     //getter and setters
     //-------------------------------
-    public String getCommand() {
-        return command;
+    public String getType() {
+        return type;
     }
 
-    public int getIndex() {
-        return index;
+    public void setType(String type) {
+        this.type = type;
     }
 
-    public void setCommand(String command) {
-        this.command = command;
+    public String getKey() {
+        return key;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
+    public void setKey(String key) {
+        this.key = key;
     }
 
-    public String getInfo() {
-        return info;
+    public String getValue() {
+        return value;
     }
 
-    public void setInfo(String info) {
-        this.info = info;
+    public void setValue(String value) {
+        this.value = value;
     }
     //-------------------------------
 
     //constructor
     public Main() {
-        command = "";
+        type = "";
+        key = "";
+        value = "";
+        gson = new Gson();
     }
 
     public static void main(String[] args) {
@@ -63,32 +75,36 @@ public class Main {
     //method that server should call
     public void start(String[] args) {
 
-            setCommand(args[1]);
-            switch (getCommand()) {
-                case ("set"):
-                    setIndex(Integer.parseInt(args[3]));
-                    setInfo(args[5]);
-                    connectToServer(getCommand(), getIndex(), getInfo());
-                    break;
-                case ("get"):
-                    setIndex(Integer.parseInt(args[3]));
-                    connectToServer(getCommand(), getIndex());
-                    break;
-                case ("delete"):
-                    setIndex(Integer.parseInt(args[3]));
-                    connectToServer(getCommand(), getIndex());
-                    break;
-                case ("exit"):
-                    connectToServer(getCommand());
-                    return;
-                default:
-                    System.out.println("ERROR");
-                    break;
-            }
+        if (args[0].equals("-in")) {
+
         }
 
+        setType(args[1]);
+        switch (getType()) {
+            case ("set"):
+                setKey(args[3]);
+                setValue(args[5]);
+                connectToServer(getType(), getKey(), getValue());
+                break;
+            case ("get"):
+                setKey(args[3]);
+                connectToServer(getType(), getKey());
+                break;
+            case ("delete"):
+                setKey(args[3]);
+                connectToServer(getType(), getKey());
+                break;
+            case ("exit"):
+                connectToServer(getType());
+                return;
+            default:
+                System.out.println("ERROR");
+                break;
+        }
+    }
 
-    private void connectToServer(String command, int index) {
+
+    private void connectToServer(String type, String key) {
         try (
                 Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
                 DataInputStream input = new DataInputStream(socket.getInputStream());
@@ -96,9 +112,10 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            output.writeUTF(command + " " + index);
+            String writeString = gson.toJson(new Request(type, key));
+            output.writeUTF(writeString);
             // sending message to the server
-            System.out.println("Sent: " + command + " " + index);
+            System.out.println("Sent: " + writeString);
             String receivedMsg = input.readUTF(); // response message
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
@@ -107,7 +124,7 @@ public class Main {
     }
 
     //overload for setInformation()
-    private void connectToServer(String command, int index, String info) {
+    private void connectToServer(String type, String key, String value) {
         try (
                 Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
                 DataInputStream input = new DataInputStream(socket.getInputStream());
@@ -115,9 +132,10 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            output.writeUTF(command + " " + index + " " + info);
+            String writeString = gson.toJson(new Request(type, key, value));
+            output.writeUTF(writeString);
             // sending message to the server
-            System.out.println("Sent: " + command + " " + index + " " + info);
+            System.out.println("Sent: " + writeString);
             String receivedMsg = input.readUTF(); // response message
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
@@ -125,7 +143,7 @@ public class Main {
         }
     }
     //Overload for "exit"
-    private void connectToServer(String command) {
+    private void connectToServer(String type) {
         try (
                 Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
                 DataInputStream input = new DataInputStream(socket.getInputStream());
@@ -133,13 +151,70 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            output.writeUTF(command);
+            String writeString = gson.toJson(new Request(type));
+            output.writeUTF(writeString);
             // sending message to the server
-            System.out.println("Sent: " + command);
+            System.out.println("Sent: " + writeString);
             String receivedMsg = input.readUTF(); // response message
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    //made for Gson for convenience
+    private class Request {
+        private String type;
+        private String key;
+        private String value;
+
+        //Constructors
+        //-------------------------------
+        private Request() {
+
+        }
+
+        public Request(String type) {
+            this.type = type;
+        }
+
+        public Request(String type, String key) {
+            this.type = type;
+            this.key = key;
+        }
+
+        public Request(String type, String key, String value) {
+            this.type = type;
+            this.key = key;
+            this.value = value;
+        }
+        //-------------------------------
+
+        //getters and setters
+        //-------------------------------
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
+        //-------------------------------
     }
 }
