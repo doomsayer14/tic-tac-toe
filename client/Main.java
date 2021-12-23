@@ -76,7 +76,7 @@ public class Main {
     public void start(String[] args) {
 
         if (args[0].equals("-in")) {
-
+            sendFile(jsonFile);
         }
 
         setType(args[1]);
@@ -100,6 +100,26 @@ public class Main {
             default:
                 System.out.println("ERROR");
                 break;
+        }
+    }
+
+    private void sendFile(String jsonFile) {
+        try (
+                Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+                DataInputStream input = new DataInputStream(socket.getInputStream());
+                DataOutputStream output = new DataOutputStream(socket.getOutputStream())
+        ) {
+            System.out.println("Client started!");
+
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(jsonFile));
+            String writeString = bufferedReader.readLine();
+            output.writeUTF(writeString);
+            // sending message to the server
+            System.out.println("Sent: " + writeString);
+            String receivedMsg = input.readUTF(); // response message
+            System.out.println("Received: " + receivedMsg);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
