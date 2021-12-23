@@ -4,16 +4,37 @@ import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Main {
     private static final int PORT = 34522;
 
+    private ServerSocket server;
+
     //simulated database of strings of size 1000
     private final Map<String, String> dataBase;
+
+    private final String PATH = "/Users/vyesman/IdeaProjects/JSON Database/JSON Database/task/src/server/data folder/db.json";
+    private final File dbJson;
+    private final BufferedWriter bufferedWriter;
+
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
 
     private final Gson gson;
 
@@ -61,22 +82,29 @@ public class Main {
 
     //constructor
     //-------------------------------
-    private Main() {
+    private Main() throws IOException {
         type = "";
         key = "";
         value = "";
         dataBase = new HashMap<>();
         gson = new Gson();
+        dbJson = new File(PATH);
+
+        FileWriter fileWriter = new FileWriter(dbJson, true);
+        bufferedWriter = new BufferedWriter(fileWriter);
+
     }
     //-------------------------------
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+
         new Main().runServer();
     }
 
     private void runServer() {
         try (ServerSocket server = new ServerSocket(PORT)) {
             System.out.println("Server started!");
+            Session session = new Session(server.accept());
             while (true) {
                 try (
                         Socket socket = server.accept(); // accepting a new client
@@ -131,23 +159,56 @@ public class Main {
         }
     }
 
-    private void deleteInfo(String key) {
+    synchronized private void deleteInfo(String key) throws IOException {
+        writeLock.lock();
         dataBase.remove(key);
+        bufferedWriter.write(gson.toJson(dataBase));
+        writeLock.unlock();
     }
 
-    private String getInfo(String key) {
+    synchronized private String getInfo(String key) throws IOException {
+/*
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(PATH));
+        String str = bufferedReader.readLine();
+        while (str != null) {
+            if (str.contains(key)) {
+                readLock.unlock();
+                return str;
+            }
+            str = bufferedReader.readLine();
+        }
+        readLock.unlock();
+        return "ERROR";
+*/
+        readLock.lock();
         if (dataBase.containsKey(key)) {
+            readLock.unlock();
             return dataBase.get(key);
         }
+        readLock.unlock();
         return "ERROR";
     }
 
     //set specified string in specified index
-    private void setInformation(String key, String value) {
+    synchronized private void setInformation(String key, String value) throws IOException {
+        writeLock.lock();
         dataBase.put(key, value);
+        String str = gson.toJson(new dbJson(key, value)) + System.lineSeparator();
+        Files.write(Paths.get("/server/data folder/db.json"), str.getBytes(), StandardOpenOption.APPEND);
+        writeLock.unlock();
     }
 
-    //two classes below made for convenience to work with Gson
+    //three classes below made for convenience to work with Gson
+
+    private class dbJson {
+        private String key;
+        private String value;
+
+        public dbJson(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
 
     //class for output to client
     private class Response {
@@ -253,6 +314,30 @@ public class Main {
         public void setValue(String value) {
             this.value = value;
         }
+
         //-------------------------------
+    }
+
+    class Session extends Thread {
+        private final Socket socket;
+
+        public Session(Socket socketForClient) {
+            this.socket = socketForClient;
+        }
+
+        public void run() {
+            try (
+                    DataInputStream input = new DataInputStream(socket.getInputStream());
+                    DataOutputStream output = new DataOutputStream(socket.getOutputStream())
+            ) {
+                for (int i = 0; i < 5; i++) {
+                    String msg = input.readUTF();
+                    output.writeUTF(msg);
+                }
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
