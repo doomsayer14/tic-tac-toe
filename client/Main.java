@@ -5,8 +5,6 @@ import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
 
 public class Main {
 
@@ -30,8 +28,6 @@ public class Main {
     private String value;
 
     private final Gson gson;
-
-    boolean check = true;
 
     //getter and setters
     //-------------------------------
@@ -58,6 +54,15 @@ public class Main {
     public void setValue(String value) {
         this.value = value;
     }
+
+    public String getJsonFile() {
+        return jsonFile;
+    }
+
+    public void setJsonFile(String jsonFile) {
+        this.jsonFile = jsonFile;
+    }
+
     //-------------------------------
 
     //constructor
@@ -76,7 +81,9 @@ public class Main {
     public void start(String[] args) {
 
         if (args[0].equals("-in")) {
-            sendFile(jsonFile);
+            String path = "/Users/vyesman/IdeaProjects/JSON Database/JSON Database/task/src/client/data/";
+            setJsonFile(args[1]);
+            sendFile(path + getJsonFile());
         }
 
         setType(args[1]);
@@ -132,7 +139,7 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            String writeString = gson.toJson(new Request(type, key));
+            String writeString = gson.toJson(new server.Request(type, key));
             output.writeUTF(writeString);
             // sending message to the server
             System.out.println("Sent: " + writeString);
@@ -152,7 +159,7 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            String writeString = gson.toJson(new Request(type, key, value));
+            String writeString = gson.toJson(new server.Request(type, key, value));
             output.writeUTF(writeString);
             // sending message to the server
             System.out.println("Sent: " + writeString);
@@ -162,6 +169,7 @@ public class Main {
             e.printStackTrace();
         }
     }
+
     //Overload for "exit"
     private void connectToServer(String type) {
         try (
@@ -171,7 +179,7 @@ public class Main {
         ) {
             System.out.println("Client started!");
 
-            String writeString = gson.toJson(new Request(type));
+            String writeString = gson.toJson(new server.Request(type));
             output.writeUTF(writeString);
             // sending message to the server
             System.out.println("Sent: " + writeString);
@@ -180,61 +188,5 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    //made for Gson for convenience
-    private class Request {
-        private String type;
-        private String key;
-        private String value;
-
-        //Constructors
-        //-------------------------------
-        private Request() {
-
-        }
-
-        public Request(String type) {
-            this.type = type;
-        }
-
-        public Request(String type, String key) {
-            this.type = type;
-            this.key = key;
-        }
-
-        public Request(String type, String key, String value) {
-            this.type = type;
-            this.key = key;
-            this.value = value;
-        }
-        //-------------------------------
-
-        //getters and setters
-        //-------------------------------
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getKey() {
-            return key;
-        }
-
-        public void setKey(String key) {
-            this.key = key;
-        }
-
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-        //-------------------------------
     }
 }
