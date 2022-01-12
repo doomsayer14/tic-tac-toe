@@ -1,584 +1,270 @@
-package tictactoe;
+package search;
 
-import java.util.Random;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
 
-//An instance of this class is used to call only
-//one method - game(), all logic described in this method.
+
 class Main {
 
-    //contain our game field
-    private final char[][] charState;
+    private Map<String, List<Integer>> searchMap;
 
-    private char sign;
+    private static BufferedReader fileReader;
 
-    private Scanner scanner;
+    private final BufferedReader consoleReader;
 
-    // for easyAI
-    private final Random random;
+    //typed by user data, by which program search people
+    private String data;
 
-    //line e.g. "start easy user" splits on 3 parts
-    private String command;
-    private String firstPlayer;
-    private String secondPlayer;
+    //number of people, which user can type in
+    private int numOfPeople;
 
-    private final Minimax minimax;
+    //container for all people
+    private final List<String> people;
 
-    public static void main(String[] args) {
-        new Main().game();
+    //array of all information
+    private static String[][] information;
+
+    //people which was founded by data
+    private static List<String> foundedPeople;
+
+    //number of command in user menu
+    private static int command;
+
+    public Main() throws FileNotFoundException {
+        numOfPeople = 0;
+        foundedPeople = new ArrayList<>();
+        consoleReader = new BufferedReader(new InputStreamReader(System.in));
+        command = -1;
+        people = new ArrayList<>();
+        searchMap = new HashMap<>();
     }
 
-    //Constructor
-    public Main() {
-        charState = new char[3][3];
+    //getters and setters
 
-        scanner = new Scanner(System.in);
-        random = new Random();
+    //-----------------------------//
 
-        command = "";
-
-        minimax = new Minimax();
-
+    public int getNumOfPeople() {
+        return numOfPeople;
     }
 
-    //the main method
-    public void game() {
-        while (!command.equals("exit")) {
-            initTable();
-            askCommand();
+    public void setNumOfPeople(int numOfPeople) {
+        this.numOfPeople = numOfPeople;
+    }
 
-            //костыль...
-            if (command.equals("exit")) {
-                return;
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
+
+//-----------------------------//
+
+    //start of the program. Calls method "process()",
+    //all logic described here
+    public static void main(String[] args) throws IOException {
+        File file = new File(args[1]);
+        FileReader fr = new FileReader(file);
+        fileReader = new BufferedReader(fr);
+
+        new Main().process();
+    }
+
+    //main method
+    private void process() throws IOException {
+
+        int countLines = -1;
+
+        //counting people in our file
+        String s = fileReader.readLine();
+        people.add(s);
+        countLines++;
+        while (s != null) {
+            s = fileReader.readLine();
+            people.add(s);
+            countLines++;
+        }
+        setNumOfPeople(countLines);
+        people.remove(people.size() - 1);
+
+        information = new String[getNumOfPeople()][3];
+        //reading information from "people" to "information"
+        for (int i = 0; i < getNumOfPeople(); i++) {
+            //array of data about people, separated with space
+            String[] words = people.get(i).split(" ");
+            for (int j = 0; j < words.length; j++) {
+                information[i][j] = words[j];
             }
-
-            printTable(charState);
-
-            //decides, whose turn now: true means firstPlayer,
-            //false means secondPlayer
-            boolean checkTurn = true;
-
-            //while game is alive, this variable has to control its validness
-            boolean isGameValid = true;
-
-            //After the command input (askCommand)
-            //this cycle starts the game
-            //and controls it finished or not.
-            //then program ask for a command again
-
-            while (isGameValid) {
-                turn(checkTurn);                            //make the move
-                printTable(charState);                      //print game field
-                isGameValid = checkGameValid(); //check the game for validness
-                checkTurn = !checkTurn;                     //change turn to next player
-            }
-
         }
-    }
-
-    //first we need to fill in our array "charState" with
-    //sign '_' which means empty cell
-    private void initTable() {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                charState[i][j] = '_';
+        assembleMap();
+        while (true) {
+            showUserMenu();
+            s = consoleReader.readLine();
+            command = Integer.parseInt(s);
+            switch (command) {
+                case 1:
+                    find();
+                    break;
+                case 2:
+                    showAllPeople();
+                    break;
+                case 0:
+                    System.out.println("Bye!");
+                    return;
+                default:
+                    System.out.println("Incorrect option! Try again.");
             }
         }
     }
 
-    //then we split our command on 3 parts and check them on correctness
-    //with additional methods
-    private void askCommand() {
-        System.out.print("Input command: ");
-        scanCommand();
-        while (!checkCommand()) {
-            System.out.println("Bad parameters!");
-            System.out.print("Input command: ");
-            scanCommand();
-        }
-    }
-
-    //this method literally takes full line (fullCommand) and splits it by
-    //space on 3 parts. Try/catch is necessary to avoid not correct input.
-    private void scanCommand() {
-        try {
-            String fullCommand;
-            String[] commandList;
-            fullCommand = scanner.nextLine();
-            if (fullCommand.equals("exit")) {
-                command = fullCommand;
-                return;
-            }
-            commandList = fullCommand.split(" ", 3);
-            command = commandList[0];
-            firstPlayer = commandList[1];
-            secondPlayer = commandList[2];
-        } catch (ArrayIndexOutOfBoundsException e) {
-        }
-    }
-
-    //hardcoding all appropriate variants of player - AI and its levels
-    //or human. Try/catch is necessary to avoid not correct input.
-    private boolean checkCommand() {
-        try {
-            return command.equals("exit") || (
-                    command.equals("start") &&
-                            (firstPlayer.equals("easy") || firstPlayer.equals("user")
-                                    || firstPlayer.equals("medium") || firstPlayer.equals("hard")) &&
-                            (secondPlayer.equals("easy") || secondPlayer.equals("user")
-                                    || secondPlayer.equals("medium") || secondPlayer.equals("hard")));
-        } catch (NullPointerException e) {
-            return false;
-        }
-    }
-
-    //define "isGameValid" variable, that controls game validness
-    private boolean checkGameValid() {
-        if (checkWin(sign)) {
-            System.out.println(sign + " wins");
-            return false;
-        }
-        if (isTableFull()) {
-            System.out.println("Draw");
-            return false;
-        }
-        return true;
-    }
-
-    //hardcoding of all combinations of win, why not?)))))))
-    private boolean checkWin(char dot) {
-        for (int i = 0; i < 3; i++)
-            if ((charState[i][0] == dot && charState[i][1] == dot &&
-                    charState[i][2] == dot) ||
-                    (charState[0][i] == dot && charState[1][i] == dot &&
-                            charState[2][i] == dot))
-                return true;
-        if ((charState[0][0] == dot && charState[1][1] == dot &&
-                charState[2][2] == dot) ||
-                (charState[2][0] == dot && charState[1][1] == dot &&
-                        charState[0][2] == dot))
-            return true;
-        return false;
-    }
-
-    //hardcoding all cases, when game field is full
-    private boolean isTableFull() {
-        for (int row = 0; row < 3; row++)
-            for (int col = 0; col < 3; col++)
-                if (charState[row][col] == '_')
-                    return false;
-        return true;
-    }
-
-    //methods that choose, who will make the turn -
-    //AI of any level or human
-    private void turn(String player) {
-        switch (player) {
-            case ("user"):
-                turnHuman();
+    private void find() throws IOException {
+        System.out.println("Select a matching strategy: ALL, ANY, NONE");
+        String s = consoleReader.readLine();
+        System.out.println("Enter a name or email to search all suitable people.");
+        String s1 = consoleReader.readLine();
+        switch (s) {
+            case ("ALL"):
+                List<Integer> listALL = findALL(s1);
+                show(listALL);
                 break;
-            case ("easy"):
-                turnEasyAI();
+            case ("ANY"):
+                List<Integer> listANY = findANY(s1);
+                show(listANY);
                 break;
-            case ("medium"):
-                turnMediumAI();
+            case ("NONE"):
+                List<Integer> listNONE = findNONE(s1);
+                show(listNONE);
                 break;
-            case ("hard"):
-                turnHardAI();
+            default:
+                find();
                 break;
         }
     }
 
-    //methods that choose, who will make the turn -
-    //firstPlayer or secondPlayer
-    private void turn(boolean checkTurn) {
-        if (checkTurn) {
-            turn(firstPlayer);
+    //If the strategy is NONE, the program should print lines that do not contain words from the query at all
+    private List<Integer> findNONE(String s1) throws IOException {
+        List<Integer> resList = new ArrayList<>();
+        List<Integer> listMatches = findANY(s1);
+
+        for (int i = 0; i < people.size(); i++) {
+            if (!listMatches.contains(i)) {
+                resList.add(i);
+            }
+        }
+        return resList;
+    }
+
+    //If the strategy is ANY, the program should print the lines containing at least one word from the query.
+    private List<Integer> findANY(String s) throws IOException {
+        List<Integer> list = new ArrayList<>();
+
+        String[] arr = s.split(" ");
+        for (String value : arr) {
+            if (searchMap.get(value.toLowerCase(Locale.ROOT)) != null) {
+                list.addAll(searchMap.get(value.toLowerCase(Locale.ROOT)));
+            }
+        }
+        return list;
+    }
+
+    private void show(List<Integer> list) {
+        if (!list.isEmpty()) {
+            System.out.println(list.size() + " persons found:");
+            for (Integer i : list) {
+                System.out.println(people.get(i));
+            }
             return;
         }
-        turn(secondPlayer);
+        System.out.println("No matching people found.");
     }
 
-    //human turn, hardcoding all input mistakes,
-    //which user can make. Methods ask coordinates
-    //until user type right coordinates.
-    private void turnHuman() {
-        int x = 4, y = 4;
-        do {
-            System.out.print("Enter the coordinates: ");
-            if (scanner.hasNextInt()) {
-                x = scanner.nextInt() - 1;
-                y = scanner.nextInt() - 1;
-                if (x >= 3 || y >= 3) {
-                    System.out.println("Coordinates should be from 1 to 3!");
+    //If the strategy is ALL, the program should print lines containing all the words from the query.
+    private List<Integer> findALL(String s) throws IOException {
+
+        List<Integer> result;
+        List<Integer> res2;
+
+        String[] arr = s.split(" ");
+
+        result = findANY(arr[0]);
+
+        for (int i = 1; i < arr.length; i++) {
+            res2 = findANY(arr[i]);
+
+            result.retainAll(res2);
+        }
+
+        return result;
+    }
+
+
+    private void assembleMap() {
+        for (int i = 0; i < people.size(); i++) {
+            String[] strings = people.get(i).split(" ");
+            for (String key : strings) {
+                List<Integer> values = searchMap.get(key.toLowerCase(Locale.ROOT));
+                if (values == null) {
+                    values = new ArrayList<>();
                 }
-            } else {
-                System.out.println("You should enter numbers!");
-                x = 4;
-                y = 4;
-                scanner = new Scanner(System.in);
+                values.add(i);
+                searchMap.put(key.toLowerCase(Locale.ROOT), values);
             }
-        } while (!isCellValid(x, y));
-        setSignInCharState(x, y);
+        }
     }
 
-    //simply makes random move
-    private void randomMove() {
-        int x = 4, y = 4;
-        do {
-            x = random.nextInt(3);
-            y = random.nextInt(3);
-        } while (!isCellValidAI(x, y));
-        setSignInCharState(x, y);
-    }
+    //displays all the people, that user typed in
+    private void showAllPeople() {
+        StringBuilder sb = new StringBuilder();
 
-    //easy AI turn, based on a random
-    private void turnEasyAI() {
-        System.out.println("Making move level \"easy\"");
-        randomMove();
-    }
-
-    //medium AI turn. Description from the task:
-    /*
-    When the AI is playing at medium difficulty level, it makes moves using the following logic:
-
-    1. If it already has two in a row and can win with one further move, it does so.
-    2. If its opponent can win with one move, it plays the move necessary to block this.
-    3. Otherwise, it makes a random move.
-    */
-    private void turnMediumAI() {
-        System.out.println("Making move level \"medium\"");
-
-        //check for victory in one turn
-        for (int i = 0; i < 3; i++) {
+        System.out.println("=== List of people ===");
+        for (int i = 0; i < getNumOfPeople(); i++) {
             for (int j = 0; j < 3; j++) {
-                if (isCellValidAI(i, j)) {
-                    setSignInCharState(i, j);
-                    if (checkWin(sign)) {
-                        return;
+                if (information[i][j] != null) {
+                    sb.append(information[i][j]).append(" ");
+                }
+            }
+            sb.deleteCharAt(sb.length() - 1);
+            System.out.println(sb);
+            sb.delete(0, sb.length());
+        }
+    }
+
+    //search for specified data in array "people"
+    private void searchInformation() {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < getNumOfPeople(); i++) {
+            for (int j = 0; j < 3; j++) {
+                Optional<String> optional = Optional.ofNullable(information[i][j]);
+                if (optional.isPresent()) {
+                    String inf = optional.get().toLowerCase(Locale.ROOT);
+                    String d = getData().toLowerCase(Locale.ROOT);
+                    if (inf.contains(d)) {
+                        foundedPeople.add(people.get(i));
+                        j = 3;
                     }
-                    charState[i][j] = '_';
                 }
             }
         }
 
-        //prevent opponent's victory in one turn
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (isCellValidAI(i, j)) {
-                    setOppositeSignInCharState(i, j);
-                    if (checkWin(oppositeDefineSign())) {
-                        setSignInCharState(i, j);
-                        return;
-                    }
-                    charState[i][j] = '_';
-                }
+        if (foundedPeople.isEmpty()) {
+            System.out.println("No matching people found.");
+        } else {
+            System.out.println("Found people:");
+            for (String str : foundedPeople) {
+                System.out.println(str);
             }
+            foundedPeople.clear();
         }
 
-        randomMove();
     }
 
-    //hard AI turn. Description from the task:
-    /*
-    The algorithm that implements this is called minimax.
-    It's a brute force algorithm that maximizes the value of the AI's position
-    and minimizes the worth of its opponent's. Minimax is not just for Tic-Tac-Toe.
-    You can use it with any other game where two players
-    make alternate moves, such as chess.
-     */
-    private void turnHardAI() {
-        System.out.println("Making move level \"hard\"");
-        int[] coordinates = new int[2];
-        System.arraycopy(minimax.getCoordinates(charState, defineSign(), oppositeDefineSign()),
-                0, coordinates, 0, 2);
-        int x = coordinates[0];
-        int y = coordinates[1];
-        setSignInCharState(x, y);
+    //displays user menu
+    private void showUserMenu() {
+        System.out.println("=== Menu ===");
+        System.out.println("1. Find a person.");
+        System.out.println("2. Print all data.");
+        System.out.println("0. Exit.");
     }
-
-    //set actual sign for this turn
-    //in game field (char array charState[][])
-    private void setSignInCharState(int x, int y) {
-        sign = defineSign();
-        charState[x][y] = sign;
-    }
-
-    //sets opposite sign to the actual one
-    //in game field (char array charState[][])
-    private void setOppositeSignInCharState(int x, int y) {
-        sign = oppositeDefineSign();
-        charState[x][y] = sign;
-    }
-
-    //while human tries to type not occupied
-    //and correct coordinates, this method always check player input
-    private boolean isCellValid(int x, int y) {
-        if (x < 0 || y < 0 || x > 2 || y > 2) {
-            return false;
-        }
-        if (charState[x][y] == 'X' || charState[x][y] == 'O') {
-            System.out.println("This cell is occupied! Choose another one!");
-            return false;
-        }
-        return charState[x][y] == '_';
-    }
-
-    //the same as previous but for AI of any level
-    private boolean isCellValidAI(int x, int y) {
-        if (charState[x][y] == 'X' || charState[x][y] == 'O') {
-            return false;
-        }
-        return charState[x][y] == '_';
-    }
-
-    //when program needs to send as an argument in some methods
-    //'X' or 'O', this method decide, which is actual for this turn
-    public char defineSign() {
-        int x = 0;
-        int y = 0;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (charState[i][j] == 'X') {
-                    x++;
-                }
-                if (charState[i][j] == 'O') {
-                    y++;
-                }
-            }
-        }
-        if (y == x) {
-            return 'X';
-        }
-        return 'O';
-    }
-
-    //returns opposite sign to the actual one
-    public char oppositeDefineSign() {
-        if (defineSign() == 'X') {
-            return 'O';
-        }
-        return 'X';
-    }
-
-    //simply prints game field. Additional methods added to
-    //satisfy DRY principle.
-    private static void printTable(char[][] charState) {
-        printHorizontalBorder();
-        printBody(charState);
-        printHorizontalBorder();
-    }
-
-    private static void printHorizontalBorder() {
-        System.out.println("---------");
-    }
-
-    private static void printBody(char[][] charState) {
-        for (int i = 0; i < 3; i++) {
-            System.out.print("| ");
-            for (int j = 0; j < 3; j++) {
-                if (charState[i][j] == '_') {
-                    System.out.print("  ");
-                } else {
-                    System.out.print(charState[i][j] + " ");
-                }
-            }
-            System.out.println("|");
-        }
-    }
-
-    //this class is made for algorithm "minimax". Full copypast
-    //from "geeksforgeeks.org".
-    //please don't even try to understand, just accept, that there is
-    //method "getCoordinates", which returns the best
-    //row and column in an array
-
 }
-
-// Java program to find the
-// next optimal move for a player
-class Minimax {
-    static class Move {
-        int row, col;
-    }
-
-    // This function returns true if there are moves
-// remaining on the board. It returns false if
-// there are no moves left to play.
-    static Boolean isMovesLeft(char[][] board) {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                if (board[i][j] == '_')
-                    return true;
-        return false;
-    }
-
-    // This is the evaluation function as discussed
-// in the previous article ( http://goo.gl/sJgv68 )
-    static int evaluate(char[][] b, char player, char opponent) {
-        // Checking for Rows for X or O victory.
-        for (int row = 0; row < 3; row++) {
-            if (b[row][0] == b[row][1] &&
-                    b[row][1] == b[row][2]) {
-                if (b[row][0] == player)
-                    return +10;
-                else if (b[row][0] == opponent)
-                    return -10;
-            }
-        }
-
-        // Checking for Columns for X or O victory.
-        for (int col = 0; col < 3; col++) {
-            if (b[0][col] == b[1][col] &&
-                    b[1][col] == b[2][col]) {
-                if (b[0][col] == player)
-                    return +10;
-
-                else if (b[0][col] == opponent)
-                    return -10;
-            }
-        }
-
-        // Checking for Diagonals for X or O victory.
-        if (b[0][0] == b[1][1] && b[1][1] == b[2][2]) {
-            if (b[0][0] == player)
-                return +10;
-            else if (b[0][0] == opponent)
-                return -10;
-        }
-
-        if (b[0][2] == b[1][1] && b[1][1] == b[2][0]) {
-            if (b[0][2] == player)
-                return +10;
-            else if (b[0][2] == opponent)
-                return -10;
-        }
-
-        // Else if none of them have won then return 0
-        return 0;
-    }
-
-    // This is the minimax function. It considers all
-// the possible ways the game can go and returns
-// the value of the board
-    static int minimax(char[][] board,
-                       int depth, Boolean isMax, char player, char opponent) {
-        int score = evaluate(board, player, opponent);
-
-        // If Maximizer has won the game
-        // return his/her evaluated score
-        if (score == 10)
-            return score;
-
-        // If Minimizer has won the game
-        // return his/her evaluated score
-        if (score == -10)
-            return score;
-
-        // If there are no more moves and
-        // no winner then it is a tie
-        if (!isMovesLeft(board))
-            return 0;
-
-        // If this maximizer's move
-        int best;
-        if (isMax) {
-            best = -1000;
-
-            // Traverse all cells
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    // Check if cell is empty
-                    if (board[i][j] == '_') {
-                        // Make the move
-                        board[i][j] = player;
-
-                        // Call minimax recursively and choose
-                        // the maximum value
-                        best = Math.max(best, minimax(board,
-                                depth + 1, !isMax, player, opponent));
-
-                        // Undo the move
-                        board[i][j] = '_';
-                    }
-                }
-            }
-        }
-
-        // If this minimizer's move
-        else {
-            best = 1000;
-
-            // Traverse all cells
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    // Check if cell is empty
-                    if (board[i][j] == '_') {
-                        // Make the move
-                        board[i][j] = opponent;
-
-                        // Call minimax recursively and choose
-                        // the minimum value
-                        best = Math.min(best, minimax(board,
-                                depth + 1, !isMax, player, opponent));
-
-                        // Undo the move
-                        board[i][j] = '_';
-                    }
-                }
-            }
-        }
-        return best;
-    }
-
-    // This will return the best possible
-// move for the player
-    static Move findBestMove(char[][] board, char player, char opponent) {
-        int bestVal = -1000;
-        Move bestMove = new Move();
-        bestMove.row = -1;
-        bestMove.col = -1;
-
-        // Traverse all cells, evaluate minimax function
-        // for all empty cells. And return the cell
-        // with optimal value.
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                // Check if cell is empty
-                if (board[i][j] == '_') {
-                    // Make the move
-                    board[i][j] = player;
-
-                    // compute evaluation function for this
-                    // move.
-                    int moveVal = minimax(board, 0, false, player, opponent);
-
-                    // Undo the move
-                    board[i][j] = '_';
-
-                    // If the value of the current move is
-                    // more than the best value, then update
-                    // best/
-                    if (moveVal > bestVal) {
-                        bestMove.row = i;
-                        bestMove.col = j;
-                        bestVal = moveVal;
-                    }
-                }
-            }
-        }
-
-        return bestMove;
-    }
-
-    // the main method!
-    public int[] getCoordinates(char[][] charState, char player, char opponent) {
-        char[][] board = new char[9][9];
-        System.arraycopy(charState, 0, board, 0, charState.length);
-
-        Move bestMove = findBestMove(board, player, opponent);
-        return new int[]{bestMove.row, bestMove.col};
-    }
-
-}
-
